@@ -1,5 +1,6 @@
 use axum::{
     extract::State,
+    http::Response,
     response::{Html, IntoResponse},
     routing::get,
     Json, Router,
@@ -10,6 +11,16 @@ use sysinfo::System;
 #[derive(Clone)]
 struct AppState {
     system: Arc<Mutex<System>>,
+}
+
+#[axum::debug_handler]
+async fn mjs_get() -> impl IntoResponse {
+    let file_contents = tokio::fs::read_to_string("src/index.mjs").await.unwrap();
+    Response::builder()
+        .status(200)
+        .header("Content-Type", "application/javascript;charset=utf-8")
+        .body(file_contents)
+        .unwrap()
 }
 
 #[axum::debug_handler]
@@ -35,6 +46,8 @@ async fn main() {
 
     let router = Router::new()
         .route("/", get(root_get))
+        .route("/index.html", get(root_get))
+        .route("/index.mjs", get(mjs_get))
         .route("/api/cpus", get(cpus_get))
         .with_state(state);
 
