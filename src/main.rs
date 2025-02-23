@@ -1,4 +1,4 @@
-use axum::{extract::State, routing::get, Router};
+use axum::{extract::State, routing::get, Json, Router};
 use std::sync::{Arc, Mutex};
 use sysinfo::System;
 
@@ -7,22 +7,18 @@ struct AppState {
     system: Arc<Mutex<System>>,
 }
 
+#[axum::debug_handler]
 async fn root_get() -> &'static str {
     "Hello, world"
 }
 
-async fn cpus_get(State(state): State<AppState>) -> String {
-    use ::std::fmt::Write;
+#[axum::debug_handler]
+async fn cpus_get(State(state): State<AppState>) -> Json<Vec<f32>> {
     let mut sys = state.system.lock().unwrap();
     sys.refresh_cpu_usage();
 
-    let mut s = String::new();
-    for (index, cpu) in sys.cpus().iter().enumerate() {
-        let index = index + 1;
-        let usage = cpu.cpu_usage();
-        writeln!(&mut s, "CPU {index} {usage}% ").unwrap();
-    }
-    s
+    let v: Vec<_> = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
+    Json(v)
 }
 
 #[tokio::main]
