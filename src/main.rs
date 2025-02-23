@@ -7,7 +7,11 @@ struct AppState {
     system: Arc<Mutex<System>>,
 }
 
-async fn handler(State(state): State<AppState>) -> String {
+async fn root_get() -> &'static str {
+    "Hello, world"
+}
+
+async fn cpus_get(State(state): State<AppState>) -> String {
     use ::std::fmt::Write;
     let mut sys = state.system.lock().unwrap();
     sys.refresh_cpu_usage();
@@ -27,7 +31,10 @@ async fn main() {
         system: Arc::new(Mutex::new(System::new())),
     };
 
-    let router = Router::new().route("/", get(handler)).with_state(state);
+    let router = Router::new()
+        .route("/", get(root_get))
+        .route("/api/cpus", get(cpus_get))
+        .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let addr = listener.local_addr().unwrap();
