@@ -1,4 +1,9 @@
-use axum::{extract::State, routing::get, Json, Router};
+use axum::{
+    extract::State,
+    response::{Html, IntoResponse},
+    routing::get,
+    Json, Router,
+};
 use std::sync::{Arc, Mutex};
 use sysinfo::System;
 
@@ -8,8 +13,9 @@ struct AppState {
 }
 
 #[axum::debug_handler]
-async fn root_get() -> &'static str {
-    "Hello, world"
+async fn root_get() -> impl IntoResponse {
+    let file_contents = tokio::fs::read_to_string("src/index.html").await.unwrap();
+    Html(file_contents)
 }
 
 #[axum::debug_handler]
