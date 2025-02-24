@@ -15,7 +15,7 @@ const formatNumber = (/** @type {number} */ num) =>
 const ProgressBar = ({ value }) => {
   return html`
     <div role="progressbar" aria-valuenow="${formatNumber(value)}">
-      ${value.toFixed(2).padStart(5, "0")}
+      ${value.toFixed(2).padStart(5, " ")}
     </div>
   `;
 };
