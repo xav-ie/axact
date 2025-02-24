@@ -5,12 +5,13 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use core::time;
 use std::sync::{Arc, Mutex};
 use sysinfo::System;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 struct AppState {
-    system: Arc<Mutex<System>>,
+    cpus: Arc<Mutex<Vec<f32>>>,
 }
 
 #[axum::debug_handler]
@@ -31,25 +32,33 @@ async fn root_get() -> impl IntoResponse {
 
 #[axum::debug_handler]
 async fn cpus_get(State(state): State<AppState>) -> Json<Vec<f32>> {
-    let mut sys = state.system.lock().unwrap();
-    sys.refresh_cpu_usage();
-
-    let v: Vec<_> = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
+    let v = state.cpus.lock().unwrap().clone();
     Json(v)
 }
 
 #[tokio::main]
 async fn main() {
-    let state = AppState {
-        system: Arc::new(Mutex::new(System::new())),
-    };
+    let app_state = AppState::default();
 
     let router = Router::new()
         .route("/", get(root_get))
         .route("/index.html", get(root_get))
         .route("/index.mjs", get(mjs_get))
         .route("/api/cpus", get(cpus_get))
-        .with_state(state);
+        .with_state(app_state.clone());
+
+    tokio::task::spawn_blocking(move || {
+        let mut sys = System::new();
+        loop {
+            sys.refresh_cpu_usage();
+            let v: Vec<_> = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
+            {
+                let mut cpus = app_state.cpus.lock().unwrap();
+                *cpus = v;
+            }
+            std::thread::sleep(time::Duration::from_secs(1));
+        }
+    });
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     let addr = listener.local_addr().unwrap();
