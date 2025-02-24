@@ -1,6 +1,6 @@
 use axum::{
     extract::{
-        ws::{Message, Utf8Bytes, WebSocket},
+        ws::{Message, WebSocket},
         State, WebSocketUpgrade,
     },
     http::Response,
@@ -76,8 +76,28 @@ async fn realtime_cpus_stream(app_state: AppState, mut ws: WebSocket) {
     let mut rx = app_state.tx.subscribe();
     while let Ok(msg) = rx.recv().await {
         let payload = serde_json::to_string(&msg).unwrap();
-        ws.send(Message::Text(Utf8Bytes::from(payload)))
-            .await
-            .unwrap();
+        if let Err(e) = ws.send(Message::Text(payload.into())).await {
+            let mut current_error: Option<&(dyn std::error::Error)> = Some(&e);
+            let mut should_break = false;
+
+            // errors form a chain, and we must traverse the chain...
+            while let Some(err) = current_error {
+                if let Some(io_err) = err.downcast_ref::<std::io::Error>() {
+                    should_break = matches!(
+                        io_err.kind(),
+                        std::io::ErrorKind::BrokenPipe | std::io::ErrorKind::ConnectionReset
+                    );
+                    break;
+                }
+                current_error = err.source();
+            }
+
+            if should_break {
+                break;
+            }
+
+            eprintln!("WebSocket send error: {:?}", e);
+            break;
+        }
     }
 }
