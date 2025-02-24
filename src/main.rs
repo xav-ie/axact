@@ -6,15 +6,15 @@ use axum::{
     http::Response,
     response::{Html, IntoResponse},
     routing::get,
-    Json, Router,
+    Router,
 };
 use core::time;
-use std::sync::{Arc, Mutex};
 use sysinfo::System;
+use tokio::sync::broadcast;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 struct AppState {
-    cpus: Arc<Mutex<Vec<f32>>>,
+    tx: broadcast::Sender<Snapshot>,
 }
 
 #[axum::debug_handler]
@@ -33,21 +33,18 @@ async fn root_get() -> impl IntoResponse {
     Html(file_contents)
 }
 
-#[axum::debug_handler]
-async fn cpus_get(State(state): State<AppState>) -> Json<Vec<f32>> {
-    let v = state.cpus.lock().unwrap().clone();
-    Json(v)
-}
+type Snapshot = Vec<f32>;
 
 #[tokio::main]
 async fn main() {
-    let app_state = AppState::default();
+    let (tx, _) = broadcast::channel::<Snapshot>(1);
+
+    let app_state = AppState { tx: tx.clone() };
 
     let router = Router::new()
         .route("/", get(root_get))
         .route("/index.html", get(root_get))
         .route("/index.mjs", get(mjs_get))
-        .route("/api/cpus", get(cpus_get))
         .route("/api/realtime_cpus", get(realtime_cpus_get))
         .with_state(app_state.clone());
 
@@ -56,10 +53,7 @@ async fn main() {
         loop {
             sys.refresh_cpu_usage();
             let v: Vec<_> = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
-            {
-                let mut cpus = app_state.cpus.lock().unwrap();
-                *cpus = v;
-            }
+            let _ = tx.send(v);
             std::thread::sleep(time::Duration::from_secs(1));
         }
     });
@@ -79,13 +73,9 @@ async fn realtime_cpus_get(
 }
 
 async fn realtime_cpus_stream(app_state: AppState, mut ws: WebSocket) {
-    let mut interval = tokio::time::interval(time::Duration::from_secs(1));
-    loop {
-        interval.tick().await;
-        let payload = {
-            let cpus = app_state.cpus.lock().unwrap();
-            serde_json::to_string(&*cpus).unwrap()
-        };
+    let mut rx = app_state.tx.subscribe();
+    while let Ok(msg) = rx.recv().await {
+        let payload = serde_json::to_string(&msg).unwrap();
         ws.send(Message::Text(Utf8Bytes::from(payload)))
             .await
             .unwrap();
