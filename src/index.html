@@ -5,8 +5,119 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>axact</title>
     <style>
-      ol {
+      * {
+        transition: all 0.2s ease-in-out;
+      }
+      html,
+      body {
         font-family: monospace;
+      }
+      ol {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        max-width: 500px;
+      }
+      li {
+        width: 100%;
+      }
+
+      .stack {
+        display: grid;
+        align-items: center;
+        justify-items: center;
+
+        > * {
+          grid-area: 1 / 1;
+        }
+      }
+      @property --l {
+        syntax: "<percentage>";
+        inherits: false;
+        initial-value: 0%;
+      }
+      @property --n {
+        syntax: "<percentage>";
+        inherits: false;
+        initial-value: 0%;
+      }
+      [role="progressbar"] {
+        background: linear-gradient(
+          to right,
+          #9991fa calc(var(--l) + var(--n)),
+          #c9d0c6 0%
+        );
+        transition:
+          --l 0.2s ease-in-out,
+          --n 0.2s ease-in-out;
+        padding: 0.2rem 0.4rem;
+        text-align: center;
+      }
+      li:nth-child(even) {
+        filter: hue-rotate(10deg) brightness(120%) saturate(100%);
+      }
+
+      [aria-valuenow$="1"] {
+        --n: 1%;
+      }
+      [aria-valuenow$="2"] {
+        --n: 2%;
+      }
+      [aria-valuenow$="3"] {
+        --n: 3%;
+      }
+      [aria-valuenow$="4"] {
+        --n: 4%;
+      }
+      [aria-valuenow$="5"] {
+        --n: 5%;
+      }
+      [aria-valuenow$="6"] {
+        --n: 6%;
+      }
+      [aria-valuenow$="7"] {
+        --n: 7%;
+      }
+      [aria-valuenow$="8"] {
+        --n: 8%;
+      }
+      [aria-valuenow$="9"] {
+        --n: 9%;
+      }
+      [aria-valuenow^="1"] {
+        --l: 10%;
+      }
+      [aria-valuenow^="2"] {
+        --l: 20%;
+      }
+      [aria-valuenow^="3"] {
+        --l: 30%;
+      }
+      [aria-valuenow^="4"] {
+        --l: 40%;
+      }
+      [aria-valuenow^="5"] {
+        --l: 50%;
+      }
+      [aria-valuenow^="6"] {
+        --l: 60%;
+      }
+      [aria-valuenow^="7"] {
+        --l: 70%;
+      }
+      [aria-valuenow^="8"] {
+        --l: 80%;
+      }
+      [aria-valuenow^="9"] {
+        --l: 90%;
+      }
+      [aria-valuenow="0"] {
+        --l: 0%;
+        --n: 0%;
+      }
+      [aria-valuenow="100"] {
+        --l: 100%;
+        --n: 0%;
       }
     </style>
     <script src="index.mjs" type="module"></script>

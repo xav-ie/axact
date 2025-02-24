@@ -6,6 +6,20 @@ const html = htm.bind(h);
 const sleep = (/** @type {number} */ ms) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+const formatNumber = (/** @type {number} */ num) =>
+  String(Math.round(num)).padStart(2, "0");
+
+/**
+ * @param {{ value: number; }} props
+ */
+const ProgressBar = ({ value }) => {
+  return html`
+    <div role="progressbar" aria-valuenow="${formatNumber(value)}">
+      ${value.toFixed(2).padStart(5, "0")}
+    </div>
+  `;
+};
+
 /**
  * @param {{ cpus: number[]; }} props
  */
@@ -13,7 +27,7 @@ const App = ({ cpus }) => {
   return html`
     <ol>
       ${cpus.map((cpu) => {
-        return html`<li>${cpu.toFixed(2)}</li>`;
+        return html`<li><${ProgressBar} value=${cpu} /></li>`;
       })}
     </ol>
   `;
