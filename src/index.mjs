@@ -36,6 +36,7 @@ const main = (/** @type {number[]} */ cpuData) => {
   render(html`<${App} cpus=${cpuData} />`, appElement);
 };
 
+main([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 const url = new URL("/api/realtime_cpus", location.href);
 url.protocol = url.protocol.replace("http", "ws");
 const ws = new WebSocket(url.href);
