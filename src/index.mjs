@@ -29,6 +29,8 @@ const main = async () => {
 };
 
 while (true) {
-  await main();
+  await main().catch((error) => {
+    console.error(error);
+  });
   await sleep(1000);
 }
